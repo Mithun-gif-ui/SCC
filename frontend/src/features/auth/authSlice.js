@@ -297,13 +297,18 @@ const authSlice = createSlice({
       
       // Refresh token
       .addCase(refreshAccessToken.fulfilled, (state, action) => {
-        state.accessToken = action.payload.accessToken;
-        state.refreshToken = action.payload.refreshToken;
+        // The payload contains { data: { accessToken } } from authService
+        const { accessToken, refreshToken } = action.payload.data || action.payload;
+        
+        state.accessToken = accessToken;
+        if (refreshToken) {
+          state.refreshToken = refreshToken;
+        }
         state.lastActivity = Date.now();
         
-        localStorage.setItem("accessToken", action.payload.accessToken);
-        if (action.payload.refreshToken) {
-          localStorage.setItem("refreshToken", action.payload.refreshToken);
+        localStorage.setItem("accessToken", accessToken);
+        if (refreshToken) {
+          localStorage.setItem("refreshToken", refreshToken);
         }
       })
       .addCase(refreshAccessToken.rejected, (state) => {
