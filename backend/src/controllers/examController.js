@@ -3,7 +3,10 @@ import StudyPlan from "../models/StudyPlan.js";
 import UploadedNote from "../models/UploadedNote.js";
 import { generateStudyRoadmap, generateNotesSummary } from "../services/aiService.js";
 import fs from "fs";
-import pdfParse from "pdf-parse";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const pdfParse = require("pdf-parse");
 
 // 1. Create a new Exam
 export const createExam = async (req, res) => {
