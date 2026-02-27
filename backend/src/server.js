@@ -13,6 +13,9 @@ import authRoutes from "./routes/authRoutes.js";
 import groupRoutes from "./routes/groupRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import fileRoutes from "./routes/fileRoutes.js";
+//Member 2- Exam route
+
+import examRoutes from "./routes/examRoutes.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -45,6 +48,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api", messageRoutes);
 app.use("/api", fileRoutes);
+//Member 2- Exam route API
+app.use("/api/exams", examRoutes);
 
 // 404 handler
 app.use((req, res) => {
