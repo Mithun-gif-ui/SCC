@@ -16,6 +16,9 @@ import Notes from "./pages/Notes";
 import NoteDetail from "./pages/NoteDetail";
 import Kuppi from "./pages/Kuppi";
 import Notifications from "./pages/Notifications";
+//ExamMode Member 2
+import ExamMode from './pages/ExamMode';
+
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -59,6 +62,7 @@ function App() {
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/login" element={<AuthPage />} />
               <Route path="/register" element={<AuthPage />} />
+              <Route path="/exam-mode" element={<ExamMode />} />
               <Route
                 path="/dashboard"
                 element={

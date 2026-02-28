@@ -1,0 +1,114 @@
+.exam-mode-container {
+  padding: 24px;
+  color: #e2e8f0;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.exam-header {
+  font-size: 2rem;
+  color: #00d2ff;
+  margin-bottom: 24px;
+  text-shadow: 0 0 10px rgba(0, 210, 255, 0.3);
+}
+
+.exam-tabs {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #1e293b;
+  padding-bottom: 10px;
+}
+
+.exam-tab-btn {
+  background: transparent;
+  color: #94a3b8;
+  border: none;
+  font-size: 1.1rem;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+}
+
+.exam-tab-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #fff;
+}
+
+.exam-tab-btn.active {
+  background: rgba(0, 210, 255, 0.15);
+  color: #00d2ff;
+  font-weight: bold;
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
+}
+
+.exam-card {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.exam-input, .exam-select {
+  width: 100%;
+  padding: 12px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #fff;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  outline: none;
+  transition: border 0.3s;
+}
+
+.exam-input:focus, .exam-select:focus {
+  border-color: #00d2ff;
+}
+
+.exam-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #00d2ff 100%);
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+
+.exam-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 210, 255, 0.4);
+}
+
+.exam-btn:disabled {
+  background: #334155;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.exam-list-item {
+  background: #1e293b;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border-left: 4px solid #3b82f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flashcard {
+  background: #1e293b;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #334155;
+  border-top: 3px solid #00d2ff;
+}
+
+.flashcard-q { color: #00d2ff; font-weight: bold; margin-bottom: 8px; }
+.flashcard-a { color: #cbd5e1; }

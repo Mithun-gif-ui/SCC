@@ -5,8 +5,11 @@ import { generateStudyRoadmap, generateNotesSummary } from "../services/aiServic
 import fs from "fs";
 import { createRequire } from "module";
 
+// Fix for pdf-parse (CommonJS to ES Module interop)
 const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse");
+const pdfParseRaw = require("pdf-parse");
+// Meken hariyama function eka filter karala gannawa
+const pdfParse = pdfParseRaw.default || pdfParseRaw;
 
 // 1. Create a new Exam
 export const createExam = async (req, res) => {
