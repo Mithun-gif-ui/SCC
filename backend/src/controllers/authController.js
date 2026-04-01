@@ -9,7 +9,7 @@ export const register = async (req, res) => {
   try {
     const {
       name,
-      email,
+      email: rawEmail,
       password,
       role,
       studentId,
@@ -24,9 +24,11 @@ export const register = async (req, res) => {
       linkedin
     } = req.body;
 
-    // Check if user already exists with email
-    const existingEmail = await User.findOne({ email });
-    if (existingEmail) {
+    const email = String(rawEmail || "").trim().toLowerCase();
+
+    // Check if user already exists (same normalization as login)
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res.status(400).json({ 
         success: false,
         message: "User with this email already exists" 
@@ -124,9 +126,13 @@ export const register = async (req, res) => {
  */
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password =
+      req.body.password !== undefined && req.body.password !== null
+        ? String(req.body.password)
+        : "";
 
-    // Find user with password field
+    // Find user with password field (email normalized to match schema lowercase)
     const user = await User.findOne({ email }).select("+password");
 
     if (!user) {

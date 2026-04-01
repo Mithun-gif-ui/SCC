@@ -350,13 +350,26 @@ const AuthToggle = () => {
     setSuccessMessage("");
     dispatch(clearError());
 
+    // Browser password managers / autofill update the DOM but often skip React's onChange,
+    // leaving controlled state empty. Read from the form so saved credentials still submit.
+    const formEl = e.currentTarget;
+    const domEmail = (formEl.elements.namedItem("email")?.value ?? "").trim();
+    const domPassword = formEl.elements.namedItem("password")?.value ?? "";
+    const effectiveEmail = domEmail || formData.email.trim();
+    const effectivePassword = domPassword || formData.password;
+
     if (!validateForm()) return;
+
+    if (isLogin && (!effectiveEmail || !effectivePassword)) {
+      setValidationError("Please enter your email and password.");
+      return;
+    }
 
     try {
       if (isLogin) {
         const result = await dispatch(login({ 
-          email: formData.email, 
-          password: formData.password,
+          email: effectiveEmail, 
+          password: effectivePassword,
           rememberMe 
         }));
         
@@ -569,8 +582,10 @@ const AuthToggle = () => {
                 type="email"
                 id="email"
                 name="email"
+                autoComplete="email"
                 value={formData.email}
                 onChange={handleChange}
+                onInput={handleChange}
                 onBlur={() => handleBlur('email')}
                 required
                 placeholder="you@university.edu"
@@ -708,8 +723,10 @@ const AuthToggle = () => {
                   type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
+                  autoComplete={isLogin ? "current-password" : "new-password"}
                   value={formData.password}
                   onChange={handleChange}
+                  onInput={handleChange}
                   onBlur={() => handleBlur('password')}
                   required
                   placeholder="Enter your password"

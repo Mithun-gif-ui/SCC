@@ -20,6 +20,7 @@ import Notes from "./pages/Notes";
 import NoteDetail from "./pages/NoteDetail";
 import Kuppi from "./pages/Kuppi";
 import Notifications from "./pages/Notifications";
+import ExamMode from './pages/ExamMode';
 import CommunityPage from "./pages/CommunityPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import TutorsPage from "./pages/TutorsPage";
@@ -198,6 +199,18 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+<<<<<<< HEAD
+=======
+
+              <Route path="/exam-login" element={<ExamLogin />} />
+
+              
+              <Route element={<ExamProtectedRoute />}>
+                <Route path="/exam-mode" element={<ExamMode />} />
+             
+              </Route>
+
+>>>>>>> 5e3d7235909526c27b878fe49797201a5404f945
               <Route
                 path="/timetable"
                 element={

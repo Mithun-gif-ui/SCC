@@ -3,6 +3,9 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 
 let memoryServer = null;
 
+/** "remote" = real MONGO_URI; "memory" = mongodb-memory-server (data lost on restart) */
+export let dbConnectionMode = "none";
+
 const toSafeMongoUriForLogs = (mongoUri) => {
   if (!mongoUri) return "";
   try {
@@ -15,19 +18,31 @@ const toSafeMongoUriForLogs = (mongoUri) => {
   }
 };
 
-const shouldFallbackToInMemoryDb = () => {
-  const v = process.env.USE_IN_MEMORY_DB;
-  if (v === "true") return true;
-  if (v === "false") return false;
-  // Default: allow fallback in non-production so dev can boot offline.
-  return (process.env.NODE_ENV || "development") !== "production";
-};
+/**
+ * In-memory MongoDB is opt-in only. Silent fallback hid Atlas/network issues and made
+ * users think data was "not saving" (it was only in RAM until the process exited).
+ * Set USE_IN_MEMORY_DB=true in backend/.env if you need to work fully offline.
+ */
+const shouldFallbackToInMemoryDb = () => process.env.USE_IN_MEMORY_DB === "true";
 
+/**
+ * Same pattern as `main`: connect to Atlas (or any Mongo URI) — no local/in-memory DB.
+ */
 const connectDB = async () => {
-  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  let mongoUri = (process.env.MONGO_URI || process.env.MONGODB_URI || "").trim();
 
   if (!mongoUri) {
     throw new Error("MongoDB URI is missing. Set MONGO_URI or MONGODB_URI in your environment.");
+  }
+
+  // Common .env mistake: MONGO_URI=MONGO_URI=mongodb+srv://...
+  if (mongoUri.startsWith("MONGO_URI=")) {
+    mongoUri = mongoUri.slice("MONGO_URI=".length).trim();
+  }
+  if (!mongoUri.startsWith("mongodb://") && !mongoUri.startsWith("mongodb+srv://")) {
+    throw new Error(
+      "MONGO_URI must start with mongodb:// or mongodb+srv://. Check backend/.env for a typo (e.g. duplicate MONGO_URI=)."
+    );
   }
 
   const connect = async (uri) => {
@@ -40,7 +55,8 @@ const connectDB = async () => {
 
   try {
     const conn = await connect(mongoUri);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    dbConnectionMode = "remote";
+    console.log(`MongoDB Connected (persistent): ${conn.connection.host}`);
     return conn;
   } catch (error) {
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -64,6 +80,15 @@ const connectDB = async () => {
         }
         const memUri = memoryServer.getUri();
         const conn = await connect(memUri);
+        dbConnectionMode = "memory";
+        console.warn(
+          "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+            "  IN-MEMORY MongoDB (USE_IN_MEMORY_DB=true)\n" +
+            "  Data is NOT written to Atlas — it is lost when this process stops.\n" +
+            "  For persistence: fix MONGO_URI + Atlas Network Access, then set\n" +
+            "  USE_IN_MEMORY_DB=false or remove it from backend/.env.\n" +
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        );
         console.log(`In-memory MongoDB Connected: ${conn.connection.host}`);
         return conn;
       } catch (memErr) {

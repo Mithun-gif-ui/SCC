@@ -140,7 +140,10 @@ userSchema.pre("save", async function() {
 
 // Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+  if (candidatePassword == null || this.password == null) {
+    return false;
+  }
+  return await bcrypt.compare(String(candidatePassword), this.password);
 };
 
 // Method to get public profile
