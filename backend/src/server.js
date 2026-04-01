@@ -17,20 +17,35 @@ import fileRoutes from "./routes/fileRoutes.js";
 import notesRoutes from "./routes/notesRoutes.js";
 import kuppiRoutes from "./routes/kuppiRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
-import examRoutes from "./routes/examRoutes.js";
-
-// --- අලුතින් එකතු කළ Study Pilot Routes ---
-import studyPilotRoutes from "./routes/studyPilotRoutes.js"; 
-
+import meetupRoutes from "./routes/meetupRoutes.js";
+import timetableRoutes from "./routes/timetableRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import { startMeetupCancellationJob } from "./jobs/meetupJobs.js";
 
 const app = express();
 const server = http.createServer(app);
+app.locals.dbConnected = false;
+app.locals.dbError = null;
 
 // Middleware
+const allowedOrigins = [
+  process.env.CLIENT_URL || "http://localhost:5173",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+];
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -49,7 +64,28 @@ app.get("/", (req, res) => {
   });
 });
 
-// Registering Routes
+// Health endpoint (doesn't require DB)
+app.get("/api/health", (req, res) => {
+  res.json({
+    success: true,
+    server: "ok",
+    dbConnected: Boolean(app.locals.dbConnected),
+    dbError: app.locals.dbConnected ? null : app.locals.dbError,
+    environment: process.env.NODE_ENV || "development",
+  });
+});
+
+// Block DB-backed API routes until DB is connected (dev-friendly)
+app.use("/api", (req, res, next) => {
+  if (req.path === "/health") return next();
+  if (app.locals.dbConnected) return next();
+  return res.status(503).json({
+    success: false,
+    message: "Database not connected. Check /api/health for details.",
+  });
+});
+
+// API Routes (require DB)
 app.use("/api/auth", authRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api", messageRoutes);
@@ -57,11 +93,10 @@ app.use("/api", fileRoutes);
 app.use("/api", notesRoutes);
 app.use("/api", kuppiRoutes);
 app.use("/api", notificationRoutes);
-app.use('/api/exams', examRoutes);
-
-// --- අලුතින් එකතු කළ Study Pilot Route එක ලියාපදිංචි කිරීම ---
-app.use('/api/study-pilot', studyPilotRoutes);
-
+app.use("/api", meetupRoutes);
+app.use("/api", timetableRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/admin", adminRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -108,16 +143,19 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  // Handle user joining their personal room
   socket.on("join-room", (userId) => {
     socket.join(userId);
     console.log(`User ${userId} joined personal room`);
   });
 
+  // Handle user joining a group
   socket.on("join-group", (groupId) => {
     socket.join(`group-${groupId}`);
     console.log(`User joined group: ${groupId}`);
   });
 
+  // Handle user leaving a group
   socket.on("leave-group", (groupId) => {
     socket.leave(`group-${groupId}`);
     console.log(`User left group: ${groupId}`);
@@ -128,58 +166,81 @@ io.on("connection", (socket) => {
   });
 });
 
+// Make io accessible in routes
 app.set("io", io);
 
-const startServer = async () => {
+const startJobs = async () => {
+  const archiveExpiredKuppiPostsJob = async () => {
+    try {
+      const now = new Date();
+      const result = await KuppiPost.updateMany(
+        {
+          isArchived: false,
+          eventDate: { $lt: now }
+        },
+        {
+          $set: {
+            isArchived: true,
+            archivedAt: now,
+            archivedReason: "event-expired"
+          }
+        }
+      );
+
+      if (result.modifiedCount > 0) {
+        console.log(`Archived ${result.modifiedCount} expired kuppi posts`);
+      }
+    } catch (error) {
+      console.error("Kuppi expiry job error:", error.message);
+    }
+  };
+
+  await archiveExpiredKuppiPostsJob();
+  setInterval(archiveExpiredKuppiPostsJob, 60 * 1000);
+
+  // Start meetup auto-cancellation job
+  startMeetupCancellationJob();
+};
+
+const initDb = async () => {
+  const requireDb =
+    process.env.REQUIRE_DB === "true" || (process.env.NODE_ENV || "development") === "production";
+  const retryMs = Number(process.env.DB_RETRY_MS || 30000);
+
   try {
     await connectDB();
-
-    const archiveExpiredKuppiPostsJob = async () => {
-      try {
-        const now = new Date();
-        const result = await KuppiPost.updateMany(
-          {
-            isArchived: false,
-            eventDate: { $lt: now }
-          },
-          {
-            $set: {
-              isArchived: true,
-              archivedAt: now,
-              archivedReason: "event-expired"
-            }
-          }
-        );
-
-        if (result.modifiedCount > 0) {
-          console.log(`Archived ${result.modifiedCount} expired kuppi posts`);
-        }
-      } catch (error) {
-        console.error("Kuppi expiry job error:", error.message);
-      }
-    };
-
-    await archiveExpiredKuppiPostsJob();
-    setInterval(archiveExpiredKuppiPostsJob, 60 * 1000);
-
-    const PORT = process.env.PORT || 5000;
-    server
-      .listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-        console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-      })
-      .on("error", (err) => {
-        if (err.code === "EADDRINUSE") {
-          console.error(`Port ${PORT} is already in use. Kill the other process or change PORT in .env`);
-        } else {
-          console.error("Server error:", err.message);
-        }
-        process.exit(1);
-      });
+    app.locals.dbConnected = true;
+    app.locals.dbError = null;
+    console.log("Database connected.");
+    await startJobs();
   } catch (error) {
-    console.error(error.message);
-    process.exit(1);
+    app.locals.dbConnected = false;
+    app.locals.dbError = error?.message || String(error);
+
+    if (requireDb) {
+      console.error(app.locals.dbError);
+      process.exit(1);
+    }
+
+    console.error("DB connection failed; starting server without DB. It will keep retrying.");
+    setTimeout(initDb, retryMs);
   }
 };
 
-startServer();
+const PORT = process.env.PORT || 5000;
+server
+  .listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+  })
+  .on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`Port ${PORT} is already in use. Kill the other process or change PORT in .env`);
+    } else {
+      console.error("Server error:", err.message);
+    }
+    process.exit(1);
+  });
+
+// Connect DB in background (and start DB-backed jobs when ready)
+initDb();
