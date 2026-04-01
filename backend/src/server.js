@@ -69,7 +69,6 @@ app.get("/", (req, res) => {
 });
 
 // Registering Routes
->>>>>>> 5e3d7235909526c27b878fe49797201a5404f945
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
@@ -101,14 +100,8 @@ app.use("/api", fileRoutes);
 app.use("/api", notesRoutes);
 app.use("/api", kuppiRoutes);
 app.use("/api", notificationRoutes);
-<<<<<<< HEAD
-=======
 app.use('/api/exams', examRoutes);
-
-
 app.use('/api/study-pilot', studyPilotRoutes);
-
->>>>>>> 5e3d7235909526c27b878fe49797201a5404f945
 app.use("/api", meetupRoutes);
 app.use("/api", timetableRoutes);
 app.use("/api/ai", aiRoutes);
@@ -246,7 +239,6 @@ const startServer = async () => {
   }
 };
 
-<<<<<<< HEAD
 const PORT = process.env.PORT || 5000;
 server
   .listen(PORT, () => {
@@ -264,6 +256,3 @@ server
 
 // Connect DB in background (and start DB-backed jobs when ready)
 initDb();
-=======
-startServer();
->>>>>>> 5e3d7235909526c27b878fe49797201a5404f945
